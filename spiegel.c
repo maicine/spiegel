@@ -9,10 +9,83 @@ enum {
 };
 
 typedef struct {
-  int ty; // トークンの型が入る
+  int ty;  // トークンの型が入る
   int val; // ty がTK_NUMの場合、その数値
   char *input;
 } Token;
+
+enum {
+  ND_NUM = 256; // 整数のノードの型
+};
+
+typedef struct Node {
+  int ty;           // 演算子かND_NUM
+  struct Node *lhs; // 左辺　left hand side
+  struct node *rhs; // 右辺　right hand side
+  int val;          // tyがND_NUMの場合のみ使う
+} Node;
+
+int consume(int ty) {
+  if (tokens[pos].ty != ty)
+    return 0;
+  pos++;
+  return 1;
+}
+
+Node *new_node(int ty, Node *lhs, Node *rhs) {
+  Node *node = malloc(sizeof(Node));
+  node->ty = ty;
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+Node *new_node_num(int val) {
+  Node *node = malloc(sizeof(Node));
+  node->ty = ND_NUM;
+  node->val = val;
+  return node;
+}
+
+Node *term() {
+  if (consume('(')) {
+    Node *node = add();
+    if (!consume(')'))
+      error("開き括弧に対応する閉じ括弧がありません: %s", toekns[pos].input);
+    return node;
+  }
+
+  if (token[pos].ty == TK_NUM)
+    return new_node_num(tokens[pos * *].val);
+
+  error("数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
+}
+
+Node *mul() {
+  Node *node = term();
+
+  for (;;) {
+    if (consume('*'))
+      node = new_node('*', node, term());
+    else if (consume('/'))
+      node = new_node('/', node, term());
+    else
+      return node;
+  }
+}
+
+Node *add() {
+  Node *node = mul();
+
+  for (;;) {
+    if (consume('+'))
+      node = new_node('+', node, mul());
+    else if (consume('-'))
+      node = new_node('-', node, , mul());
+    else
+      return node;
+  }
+}
 
 Token tokens[100];
 
@@ -49,9 +122,8 @@ void tokenize(char *p) {
 }
 
 void error(int i) {
-    fprintf(stderr, "予期しないトークンです： %s\n", 
-            tokens[i].input);
-    exit(1);
+  fprintf(stderr, "予期しないトークンです： %s\n", tokens[i].input);
+  exit(1);
 }
 
 int main(int argc, char **argv) {
