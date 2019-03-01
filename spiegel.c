@@ -15,7 +15,7 @@ typedef struct {
 } Token;
 
 enum {
-  ND_NUM = 256; // 整数のノードの型
+  ND_NUM = 256, // 整数のノードの型
 };
 
 typedef struct Node {
@@ -24,6 +24,19 @@ typedef struct Node {
   struct node *rhs; // 右辺　right hand side
   int val;          // tyがND_NUMの場合のみ使う
 } Node;
+
+Token tokens[100];
+int pos;
+
+/* proto type */
+int consume(int ty);
+Node *new_node(int ty, Node *lhs, Node *rhs);
+Node *new_node_num(int val);
+Node *add();
+Node *mul();
+Node *term();
+void tokenize(char *p);
+void error(int i);
 
 int consume(int ty) {
   if (tokens[pos].ty != ty)
@@ -47,18 +60,17 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *term() {
-  if (consume('(')) {
-    Node *node = add();
-    if (!consume(')'))
-      error("開き括弧に対応する閉じ括弧がありません: %s", toekns[pos].input);
-    return node;
+Node *add() {
+  Node *node = mul();
+
+  for (;;) {
+    if (consume('+'))
+      node = new_node('+', node, mul());
+    else if (consume('-'))
+      node = new_node('-', node, mul());
+    else
+      return node;
   }
-
-  if (token[pos].ty == TK_NUM)
-    return new_node_num(tokens[pos * *].val);
-
-  error("数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
 }
 
 Node *mul() {
@@ -74,20 +86,19 @@ Node *mul() {
   }
 }
 
-Node *add() {
-  Node *node = mul();
-
-  for (;;) {
-    if (consume('+'))
-      node = new_node('+', node, mul());
-    else if (consume('-'))
-      node = new_node('-', node, , mul());
-    else
-      return node;
+Node *term() {
+  if (consume('(')) {
+    Node *node = add();
+    if (!consume(')'))
+      fprintf("開き括弧に対応する閉じ括弧がありません: %s", tokens[pos].input);
+    return node;
   }
-}
 
-Token tokens[100];
+  if (tokens[pos].ty == TK_NUM)
+    return new_node_num(tokens[pos++].val);
+
+  fprintf("数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
+}
 
 void tokenize(char *p) {
   int i = 0;
