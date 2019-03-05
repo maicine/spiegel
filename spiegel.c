@@ -36,6 +36,7 @@ Node *add();
 Node *mul();
 Node *term();
 void tokenize(char *p);
+void gen(Node *node);
 void error(int i);
 
 int consume(int ty) {
@@ -90,14 +91,14 @@ Node *term() {
   if (consume('(')) {
     Node *node = add();
     if (!consume(')'))
-      fprintf("開き括弧に対応する閉じ括弧がありません: %s", tokens[pos].input);
+      fprintf(stderr, "開き括弧に対応する閉じ括弧がありません: %s", tokens[pos].input);
     return node;
   }
 
   if (tokens[pos].ty == TK_NUM)
     return new_node_num(tokens[pos++].val);
 
-  fprintf("数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
+  fprintf(stderr, "数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
 }
 
 void tokenize(char *p) {
@@ -108,7 +109,7 @@ void tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
       tokens[i].ty = *p;
       tokens[i].input = p;
       i++;
@@ -132,6 +133,36 @@ void tokenize(char *p) {
   tokens[i].input = p;
 }
 
+void gen(Node *node) {
+  if (node->ty == ND_NUM) {
+    printf("  push %d\n", node->val);
+    return;
+  }
+
+  gen(node->lhs);
+  gen(node->rhs);
+
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+
+  switch (node->ty){
+  case '+':
+    printf("  add rax, rdi\n");
+    break;
+  case '-':
+    printf("  sub rax, rdi\n");
+    break;
+  case '*':
+    printf("  mul rdi\n");
+    break;
+  case '/':
+    printf(" mov rdx, 0\n");
+    printf(" div rdi\n");
+  }
+  
+  printf("  push rax\n");
+}
+
 void error(int i) {
   fprintf(stderr, "予期しないトークンです： %s\n", tokens[i].input);
   exit(1);
@@ -144,37 +175,42 @@ int main(int argc, char **argv) {
   }
 
   tokenize(argv[1]);
+  Node *node = add();
 
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  if (tokens[0].ty != TK_NUM)
-    error(0);
-  printf("  mov rax, %d\n", tokens[0].val);
+  gen(node);
 
-  int i = 1;
-  while (tokens[i].ty != TK_EOF) {
-    if (tokens[i].ty == '+') {
-      i++;
-      if (tokens[i].ty != TK_NUM)
-        error(i);
-      printf("  add rax, %d\n", tokens[i].val);
-      i++;
-      continue;
-    }
+  // if (tokens[0].ty != TK_NUM)
+  //   error(0);
+  // printf("  mov rax, %d\n", tokens[0].val);
 
-    if (tokens[i].ty == '-') {
-      i++;
-      if (tokens[i].ty != TK_NUM)
-        error(i);
-      printf("  sub rax, %d\n", tokens[i].val);
-      i++;
-      continue;
-    }
+  // int i = 1;
+  // while (tokens[i].ty != TK_EOF) {
+  //   if (tokens[i].ty == '+') {
+  //     i++;
+  //     if (tokens[i].ty != TK_NUM)
+  //       error(i);
+  //     printf("  add rax, %d\n", tokens[i].val);
+  //     i++;
+  //     continue;
+  //   }
 
-    error(i);
-  }
+  //   if (tokens[i].ty == '-') {
+  //     i++;
+  //     if (tokens[i].ty != TK_NUM)
+  //       error(i);
+  //     printf("  sub rax, %d\n", tokens[i].val);
+  //     i++;
+  //     continue;
+  //   }
+
+  //   error(i);
+  // }
+
+  printf("  pop rax\n");
 
   printf("  ret\n");
   return 0;
