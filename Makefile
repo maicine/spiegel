@@ -1,6 +1,7 @@
 spiegel: spiegel.c
 
 test: spiegel
+		./spiegel -test
 		./test.sh
 
 clean: 
