@@ -1,7 +1,7 @@
 Spiegel
 ====
 
-Overview
+## Overview
 Simple C compiler
 
 ## Test
