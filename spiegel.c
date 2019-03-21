@@ -4,11 +4,14 @@
 #include <string.h>
 #include "spiegel.h"
 
-Token tokens[100];
+Vector *tokens;
+
 int pos;
  
 int consume(int ty) {
-  if (tokens[pos].ty != ty)
+  Token *t = tokens->data[pos];
+
+  if (t->ty != ty)
     return 0;
   pos++;
   return 1;
@@ -41,20 +44,33 @@ Node *mul() {
 }
 
 Node *term() {
+  Token *t = tokens->data[pos];
+
   if (consume('(')) {
     Node *node = add();
+    
     if (!consume(')'))
-      fprintf(stderr, "開き括弧に対応する閉じ括弧がありません: %s", tokens[pos].input);
+      fprintf(stderr, "開き括弧に対応する閉じ括弧がありません: %s", t->input);
     return node;
   }
 
-  if (tokens[pos].ty == TK_NUM)
-    return new_node_num(tokens[pos++].val);
+  if (t->ty == TK_NUM)
+    t = tokens->data[pos++];
+    return new_node_num(t->val);
 
-  fprintf(stderr, "数値でも開き括弧でもないトークンです： %s", tokens[pos].input);
+  fprintf(stderr, "数値でも開き括弧でもないトークンです： %s", t->input);
+}
+
+Token *add_token(Vector *tokens, int ty, char *input) {
+  Token *token = malloc(sizeof(Token));
+  token->ty = ty;
+  token->input = input;
+  vec_push(tokens, token);
+  return token;
 }
 
 void tokenize(char *p) {
+  tokens = new_vector();
   int i = 0;
   while (*p) {
     if (isspace(*p)) {
@@ -63,17 +79,15 @@ void tokenize(char *p) {
     }
 
     if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
-      tokens[i].ty = *p;
-      tokens[i].input = p;
+      add_token(tokens, *p, p);
       i++;
       p++;
       continue;
     }
 
     if (isdigit(*p)) {
-      tokens[i].ty = TK_NUM;
-      tokens[i].input = p;
-      tokens[i].val = strtol(p, &p, 10);
+      Token *t = add_token(tokens, TK_NUM, p);
+      t->val = strtol(p, &p, 10);
       i++;
       continue;
     }
@@ -82,12 +96,12 @@ void tokenize(char *p) {
     exit(1);
   }
 
-  tokens[i].ty = TK_EOF;
-  tokens[i].input = p;
+  add_token(tokens, TK_EOF, p);
 }
 
 void error(int i) {
-  fprintf(stderr, "予期しないトークンです： %s\n", tokens[i].input);
+  Token *t = tokens->data[pos];
+  fprintf(stderr, "予期しないトークンです： %s\n", t->input);
   exit(1);
 }
 

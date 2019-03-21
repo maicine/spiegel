@@ -34,6 +34,7 @@ Node *mul();
 Node *term();
 Vector *new_vector();
 void vec_push(Vector *vec, void *elem);
+Token *add_token(Vector *v, int ty, char *input);
 void tokenize(char *p);
 void gen(Node *node);
 void error(int i);
