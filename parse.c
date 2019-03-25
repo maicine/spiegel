@@ -14,3 +14,10 @@ Node *new_node_num(int val) {
   node->val = val;
   return node;
 }
+
+Node *new_node_ident(int val) {
+  Node *node = malloc(sizeof(Node));
+  node->ty = ND_IDENT;
+  node->name = val;
+  return node;
+}
